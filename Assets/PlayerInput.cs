@@ -29,6 +29,19 @@ public class PlayerInput : MonoBehaviour
                 StartCoroutine(AttackRoutine());
             }
         }
+        // ✨ 3. [추가] 대쉬 키 입력 (Left Shift)
+        if (Input.GetKeyDown(KeyCode.LeftShift))
+        {
+            Debug.Log("1. Left Shift 키 입력 감지됨!"); // 👈 이 메시지가 콘솔에 뜨는지 확인!
+            if (playerMovement != null) 
+            {
+                playerMovement.TryDash();
+            }
+            else
+            {
+                Debug.LogError("movement 스크립트를 찾을 수 없습니다!");
+            }
+        }
     }
     // ✨ [추가] 공격하는 동안 이동을 멈추게 하는 핵심 로직
     IEnumerator AttackRoutine()

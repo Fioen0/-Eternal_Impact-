@@ -20,6 +20,12 @@ public class CharacterAttack : MonoBehaviour
     {
         // 같은 오브젝트에 붙어있는 CharacterStats 컴포넌트를 가져옵니다.
         myStats = GetComponent<CharacterStats>();
+
+        // 💡 [안전장치] 만약 CharacterStats가 없으면 에러로 게임이 멈추지 않게 경고를 띄웁니다.
+        if (myStats == null)
+        {
+            Debug.LogWarning($"{gameObject.name}에 CharacterStats 컴포넌트가 없습니다!");
+        }
     }
     
     // ⭐ 핵심: 외부(PlayerInput이나 MobAI)에서 이 함수를 호출해서 공격을 발동시킵니다!
@@ -29,15 +35,18 @@ public class CharacterAttack : MonoBehaviour
         if (Time.time < nextAttackTime) return;
 
         Debug.Log($"{gameObject.name}이(가) 범용 공격 시스템으로 공격합니다!");
-        // ✨ [추가] 공격 이펙트 소환
+        
+        // ✨ 공격 이펙트 소환
         if (attackEffectPrefab != null && attackPoint != null)
         {
-            // attackPoint 위치와 방향(rotation) 그대로 이펙트 오브젝트를 생성합니다.
             Instantiate(attackEffectPrefab, attackPoint.position, attackPoint.rotation);
         }
 
-        // 범위 내의 적들을 감지 (이제 enemyLayer 대신 targetLayer라는 이름을 씁니다)
+        // 범위 내의 적들을 감지
         Collider2D[] hitTargets = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, targetLayer);
+
+        // 내 공격력 스탯을 가져옵니다. (CharacterStats가 없으면 기본값 10 적용)
+        int myDamage = (myStats != null) ? myStats.AttackDamage : 10;
 
         // 타겟들에게 데미지 전달
         foreach (Collider2D target in hitTargets)
@@ -45,8 +54,8 @@ public class CharacterAttack : MonoBehaviour
             CharacterStats targetStats = target.GetComponent<CharacterStats>();
             if (targetStats != null)
             {
-                // 나의 공격력 스텟을 타겟에게 전달
-                targetStats.TakeDamage(myStats.Attack);
+                // ✨ myStats.Attack -> myStats.AttackDamage 로 수정 완료!
+                targetStats.TakeDamage(myDamage);
             }
         }
 

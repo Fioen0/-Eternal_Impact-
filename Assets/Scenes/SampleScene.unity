@@ -2895,6 +2895,9 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   boxSize: {x: 0.5, y: 0.1}
+  dashSpeed: 15
+  dashTime: 0.2
+  dashCooldown: 1
 --- !u!114 &1310303132
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2920,11 +2923,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHp: 100
-  currentHp: 0
-  attack: 10
+  attackDamage: 10
   defense: 5
-  damagePopupPrefab: {fileID: 0}
   healthBar: {fileID: 0}
+  damagePopupPrefab: {fileID: 0}
 --- !u!114 &1310303134
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3176,11 +3178,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHp: 50
-  currentHp: 0
-  attack: 10
+  attackDamage: 10
   defense: 5
-  damagePopupPrefab: {fileID: 2121732568525212457, guid: 5d955b3cb5e9100488f360115e3b1034, type: 3}
   healthBar: {fileID: 989079388}
+  damagePopupPrefab: {fileID: 2121732568525212457, guid: 5d955b3cb5e9100488f360115e3b1034, type: 3}
 --- !u!114 &1643527852
 MonoBehaviour:
   m_ObjectHideFlags: 0
