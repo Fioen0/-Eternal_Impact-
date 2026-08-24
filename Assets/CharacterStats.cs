@@ -1,64 +1,96 @@
+using System.Collections;
 using UnityEngine;
 
 public class CharacterStats : MonoBehaviour
 {
-    [Header("기본 스탯")]
-    [SerializeField] private float maxHp = 100f;
-    private float currentHp;
-    
+    [Header("체력 설정")]
+    [SerializeField] private int maxHealth = 5;
+    private int currentHealth;
+
+    [Header("공격력 설정")]
     [SerializeField] private int attackDamage = 10;
-    [SerializeField] private int defense = 0; // 방어력도 미리 넣어두면 좋죠!
 
-    // ✨ 외부에 데이터만 쏙 전달해 주는 프로퍼티 (수정은 내부에서만 가능!)
-    public float MaxHp => maxHp;
-    public float CurrentHp => currentHp;
+    [Header("무적 설정")]
+    [SerializeField] private float invincibleDuration = 1.0f; // 피격 후 무적 시간 (초)
+    
+    // 외부 접근용 변수 및 프로퍼티
+    public bool isInvincible = false; 
+    public bool isDead { get; private set; } = false;
+
+    public int MaxHealth => maxHealth;
+    public int CurrentHealth => currentHealth;
     public int AttackDamage => attackDamage;
-    public int Defense => defense;
 
-    // ✨ 무적 상태 플래그 (플레이어 대쉬, 몹 피격 후 무적 시간 등에 공용 활용 가능)
-    public bool isInvincible { get; set; } = false;
-
-    [Header("UI 연동 (선택사항)")]
-    [SerializeField] private HealthBar healthBar;
-    [SerializeField] private GameObject damagePopupPrefab;
+    // ✨ [추가] 에러를 해결하기 위한 내부 참조 컴포넌트 선언
+    private Collider2D playerCollider;
+    private Animator anim;
+    private Rigidbody2D rb;
 
     void Awake()
     {
-        currentHp = maxHp;
+        currentHealth = maxHealth;
+
+        // ✨ [추가] 게임 시작 시 컴포넌트를 자동으로 할당받아 에러 방지
+        playerCollider = GetComponent<Collider2D>();
+        anim = GetComponent<Animator>();
+        if (anim == null) anim = GetComponentInChildren<Animator>();
+        rb = GetComponent<Rigidbody2D>();
     }
 
-    void Start()
+    // 데미지 입기
+    public void TakeDamage(int damage)
     {
-        if (healthBar != null) healthBar.UpdateHealthBar(currentHp, maxHp);
-    }
+        // 이미 죽었거나 무적 상태일 경우 데미지 무시
+        if (isDead || isInvincible) return;
 
-    // ✨ 데미지 받기 (공용)
-    public void TakeDamage(int incomingDamage)
-    {
-        if (isInvincible) return;
+        currentHealth -= damage;
+        currentHealth = Mathf.Max(currentHealth, 0);
 
-        // 방어력 계산 적용 (최소 1 데미지는 보장)
-        int finalDamage = Mathf.Max(incomingDamage - defense, 1);
-        currentHp -= finalDamage;
+        Debug.Log($"{gameObject.name} 피격! 남은 체력: {currentHealth}");
 
-        // 체력바 갱신
-        if (healthBar != null) healthBar.UpdateHealthBar(currentHp, maxHp);
-
-        // 데미지 팝업 소환
-        if (damagePopupPrefab != null)
+        if (currentHealth <= 0)
         {
-            Vector3 spawnPos = transform.position + new Vector3(Random.Range(-0.3f, 0.3f), 1.0f, 0);
-            GameObject popup = Instantiate(damagePopupPrefab, spawnPos, Quaternion.identity);
-            FloatingText floatingText = popup.GetComponent<FloatingText>();
-            if (floatingText != null) floatingText.SetDamage(finalDamage);
+            Die();
         }
+        else
+        {
+            // 데미지를 입은 후 일시적 무적 상태 돌입
+            StartCoroutine(BecomeInvincible());
+        }
+    }
 
-        if (currentHp <= 0) Die();
+    // 피격 시 일시적 무적 코루틴
+    private IEnumerator BecomeInvincible()
+    {
+        isInvincible = true;
+        yield return new WaitForSeconds(invincibleDuration);
+        isInvincible = false;
     }
 
     private void Die()
     {
-        Debug.Log($"{gameObject.name} 사망!");
-        Destroy(gameObject);
+        isDead = true;
+
+        // ✨ 1. 더 이상 적에게 맞거나 감지되지 않도록 Collider 끄기
+        if (playerCollider != null)
+        {
+            playerCollider.enabled = false;
+        }
+
+        // ✨ 2. 물리 연산 중단 (제자리 정지)
+        if (rb != null)
+        {
+            rb.velocity = Vector2.zero;
+            rb.simulated = false; // 물리 연산 완전히 비활성화
+        }
+
+        // ✨ 3. 사망 애니메이션 실행 (애니메이터가 있을 때만 안전하게 실행)
+        if (anim != null)
+        {
+            anim.SetTrigger("Die");
+        }
+
+        // ✨ 4. 사망 1.5초 후 캐릭터 오브젝트를 삭제
+        Destroy(gameObject, 1.5f);
     }
 }
