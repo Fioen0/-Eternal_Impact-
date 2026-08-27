@@ -1,19 +1,52 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI; // ✨ UI(Slider)를 제어하기 위해 반드시 필요합니다!
+using UnityEngine.UI;
 
 public class HealthBar : MonoBehaviour
 {
-    [SerializeField] private Slider hpSlider; // 연결할 슬라이더 컴포넌트
+    [Header("UI 연결")]
+    [SerializeField] private Slider hpSlider;
 
-    // ✨ 체력바의 최대 수치와 현재 수치를 세팅하는 함수
-    public void UpdateHealthBar(float currentHp, float maxHp)
+    [Header("스탯 참조 (비워두면 부모 오브젝트에서 자동으로 찾습니다)")]
+    [SerializeField] private CharacterStats targetStats;
+
+    private void Awake()
     {
-        if (hpSlider != null)
+        if (hpSlider == null)
         {
-            // 슬라이더의 value는 0에서 1 사이의 비율값으로 작동하게 합니다.
-            hpSlider.value = currentHp / maxHp;
+            hpSlider = GetComponent<Slider>();
+        }
+
+        if (targetStats == null)
+        {
+            targetStats = GetComponentInParent<CharacterStats>();
+        }
+    }
+
+    private void OnEnable()
+    {
+        if (targetStats != null)
+        {
+            targetStats.OnHealthChanged.AddListener(UpdateHealthBar);
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (targetStats != null)
+        {
+            targetStats.OnHealthChanged.RemoveListener(UpdateHealthBar);
+        }
+    }
+
+    // int 매개변수(현재 체력, 최대 체력)를 받아서 비율 계산 처리
+    public void UpdateHealthBar(int currentHp, int maxHp)
+    {
+        if (hpSlider != null && maxHp > 0)
+        {
+            hpSlider.value = (float)currentHp / maxHp;
+            Debug.Log($"[{gameObject.name}] 체력바 갱신: {currentHp} / {maxHp}");
         }
     }
 }
