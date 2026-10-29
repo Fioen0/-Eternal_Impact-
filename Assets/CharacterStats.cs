@@ -70,6 +70,22 @@ public class CharacterStats : MonoBehaviour
         }
     }
 
+    /// <summary>Restores health and notifies health UI listeners. Returns false if no health was restored.</summary>
+    public bool Heal(int amount)
+    {
+        if (isDead || amount <= 0 || currentHealth >= maxHealth)
+            return false;
+
+        int previousHealth = currentHealth;
+        currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
+        if (currentHealth == previousHealth)
+            return false;
+
+        Debug.Log($"{gameObject.name} 회복! 체력: {currentHealth}/{maxHealth}");
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+        return true;
+    }
+
     private IEnumerator BecomeInvincible()
     {
         isInvincible = true;
