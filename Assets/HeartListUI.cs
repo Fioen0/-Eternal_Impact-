@@ -6,57 +6,73 @@ public class HeartListUI : MonoBehaviour
 {
     [Header("스프라이트 설정")]
     [SerializeField] private Sprite fullHeart;   // 채워진 하트 이미지
-    [SerializeField] private Sprite halfHeart;   // 반쪽 하트 이미지 (없다면 full/empty만 사용 가능)
+    [SerializeField] private Sprite halfHeart;   // 반쪽 하트 이미지 (선택 사항)
     [SerializeField] private Sprite emptyHeart;  // 빈 하트 이미지
 
-    [Header("UI 연결")]
-    [SerializeField] private GameObject heartPrefab; // 아까 만든 HeartUI 프리팹
-    [SerializeField] private Transform heartContainer; // 하트들이 들어갈 HeartContainer
-    [SerializeField] private CharacterStats playerStats; // 플레이어 스탯 참조
+    [Header("UI 및 스탯 연결")]
+    [SerializeField] private GameObject heartPrefab;     // 생성할 하트 이미지 프리팹 (★ 필수!)
+    [SerializeField] private Transform heartContainer;   // 하트들이 배치될 컨테이너
+    [SerializeField] private CharacterStats playerStats; // 플레이어 스탯 스크립트
 
     private List<Image> heartImages = new List<Image>();
 
     void Start()
     {
-        // 플레이어 자동 감지
+        // 1. 컨테이너 자동 설정
+        if (heartContainer == null)
+        {
+            heartContainer = this.transform;
+        }
+
+        // 2. CharacterStats 자동 탐색 (오브젝트 직접 지정 안 했을 경우)
         if (playerStats == null)
         {
             GameObject player = GameObject.FindGameObjectWithTag("Player");
-            if (player != null)
+            if (player != null) playerStats = player.GetComponentInParent<CharacterStats>();
+            if (playerStats == null)
             {
-                playerStats = player.GetComponent<CharacterStats>();
+                Debug.LogError("[HeartListUI] 씬에서 CharacterStats 컴포넌트를 찾을 수 없습니다! Player 오브젝트를 확인해 주세요.");
+                return;
             }
         }
 
-        // 초기 하트 생성 및 UI 업데이트
+        // 3. 초기 하트 UI 생성 및 업데이트
         InitHearts();
         UpdateHearts();
+        playerStats.OnHealthChanged.AddListener(OnHealthChanged);
     }
 
-    void Update()
+    private void OnDestroy()
     {
-        // 실시간 체력 변경 감지
-        UpdateHearts();
+        if (playerStats != null) playerStats.OnHealthChanged.RemoveListener(OnHealthChanged);
     }
 
-    // 최대 체력만큼 하트 UI 생성
+    private void OnHealthChanged(int currentHealth, int maxHealth) => UpdateHearts();
+
+    // 하트 UI 프리팹 동적 생성
     private void InitHearts()
     {
-        if (playerStats == null || heartPrefab == null || heartContainer == null) return;
+        if (heartPrefab == null)
+        {
+            Debug.LogError("[HeartListUI] 'Heart Prefab'이 비어 있습니다! Inspector에서 HeartUI 프리팹을 할당해 주세요.");
+            return;
+        }
 
-        // 기존에 생성된 하트가 있다면 삭제
+        if (playerStats == null || heartContainer == null) return;
+
+        // 기존에 있던 하트 UI 오브젝트 제거
         foreach (Transform child in heartContainer)
         {
             Destroy(child.gameObject);
         }
         heartImages.Clear();
 
-        // 최대 체력(예: 5)만큼 하트 프리팹 생성
+        // MaxHealth 수치만큼 하트 프리팹 생성
         for (int i = 0; i < playerStats.MaxHealth; i++)
         {
             GameObject newHeart = Instantiate(heartPrefab, heartContainer);
             Image heartImage = newHeart.GetComponent<Image>();
-            
+
             if (heartImage != null)
             {
                 heartImages.Add(heartImage);
@@ -64,12 +80,12 @@ public class HeartListUI : MonoBehaviour
         }
     }
 
-    // 현재 체력에 따라 하트 이미지 교체
+    // 현재 체력 수치에 맞춰 하트 그래픽 갱신
     private void UpdateHearts()
     {
         if (playerStats == null) return;
 
-        // 플레이어의 MaxHealth가 바뀌었을 경우 재생성
+        // 최대 체력이 변경되었거나 슬롯 개수가 안 맞으면 재생성
         if (heartImages.Count != playerStats.MaxHealth)
         {
             InitHearts();
@@ -81,13 +97,13 @@ public class HeartListUI : MonoBehaviour
         {
             if (i < currentHP)
             {
-                // 현재 체력 범위 안이면 꽉 찬 하트
+                // 현재 체력 이하: 빨간 하트
                 heartImages[i].sprite = fullHeart;
                 heartImages[i].color = Color.white;
             }
             else
             {
-                // 체력이 깎인 부분은 빈 하트 (또는 emptyHeart 스프라이트가 없다면 어둡게 처리)
+                // 깎인 체력: 빈 하트 적용
                 if (emptyHeart != null)
                 {
                     heartImages[i].sprite = emptyHeart;
@@ -95,8 +111,9 @@ public class HeartListUI : MonoBehaviour
                 }
                 else
                 {
+                    // 빈 하트 스프라이트가 없는 경우 어두운 반투명 처리
                     heartImages[i].sprite = fullHeart;
-                    heartImages[i].color = new Color(0.2f, 0.2f, 0.2f, 0.5f); // 어두운 투명색
+                    heartImages[i].color = new Color(0.2f, 0.2f, 0.2f, 0.4f);
                 }
             }
         }

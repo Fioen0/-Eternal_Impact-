@@ -50,7 +50,7 @@ public class CharacterStats : MonoBehaviour
     // 데미지 입기
     public void TakeDamage(int damage)
     {
-        if (isDead || isInvincible) return;
+        if (isDead || isInvincible || damage <= 0) return;
 
         currentHealth -= damage;
         currentHealth = Mathf.Max(currentHealth, 0);
@@ -68,6 +68,18 @@ public class CharacterStats : MonoBehaviour
         {
             StartCoroutine(BecomeInvincible());
         }
+    }
+
+    // 체력 변경의 단일 기준점. 회복량이 실제로 적용된 경우에만 true를 반환합니다.
+    public bool Heal(int amount)
+    {
+        if (isDead || amount <= 0 || currentHealth >= maxHealth) return false;
+
+        int previousHealth = currentHealth;
+        currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+        Debug.Log($"{gameObject.name} 회복! 체력: {previousHealth} → {currentHealth}/{maxHealth}");
+        return currentHealth > previousHealth;
     }
 
     private IEnumerator BecomeInvincible()

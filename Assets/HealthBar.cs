@@ -21,6 +21,11 @@ public class HealthBar : MonoBehaviour
         if (targetStats == null)
         {
             targetStats = GetComponentInParent<CharacterStats>();
+            if (targetStats == null)
+            {
+                GameObject player = GameObject.FindGameObjectWithTag("Player");
+                if (player != null) targetStats = player.GetComponentInParent<CharacterStats>();
+            }
         }
     }
 
