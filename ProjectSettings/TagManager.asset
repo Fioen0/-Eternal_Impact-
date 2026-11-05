@@ -3,7 +3,9 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - Graund
+  - Mob
   layers:
   - Default
   - TransparentFX
@@ -11,9 +13,9 @@ TagManager:
   - 
   - Water
   - UI
-  - 
-  - 
-  - 
+  - Ground
+  - Mob
+  - Player
   - 
   - 
   - 
@@ -38,6 +40,12 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: Backaground
+    uniqueID: 646616239
+    locked: 0
+  - name: Ground
+    uniqueID: 2487283315
+    locked: 0
   - name: Default
     uniqueID: 0
     locked: 0
