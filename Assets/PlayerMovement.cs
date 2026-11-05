@@ -28,6 +28,8 @@ public class PlayerMovement : MonoBehaviour
     private bool isAttacking = false;
     private CharacterStats myStats; 
 
+    public bool CanAttack => !isAttacking && !isDashing;
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -44,20 +46,23 @@ public class PlayerMovement : MonoBehaviour
     
     void Update()
     {
+        if (myStats != null && myStats.isDead)
+            return;
+
         horizontalInput = Input.GetAxisRaw("Horizontal");
         
         // isMoving 파라미터 업데이트
-        bool isMoving = Mathf.Abs(horizontalInput) > 0.1f && !isDashing;
+        bool isMoving = Mathf.Abs(horizontalInput) > 0.1f && !isDashing && !isAttacking;
         if (anim != null)
         {
             anim.SetBool("isMoving", isMoving);
         }
 
-        if (horizontalInput < 0 && isFacingRight)
+        if (!isAttacking && horizontalInput < 0 && isFacingRight)
         {
             Flip();
         }
-        else if (horizontalInput > 0 && !isFacingRight)
+        else if (!isAttacking && horizontalInput > 0 && !isFacingRight)
         {
             Flip();
         }
@@ -67,7 +72,7 @@ public class PlayerMovement : MonoBehaviour
             isGrounded = Physics2D.OverlapBox(groundCheck.position, boxSize, 0f, groundLayer);
         }
 
-        if (Input.GetButtonDown("Jump") && isGrounded)
+        if (!isAttacking && Input.GetButtonDown("Jump") && isGrounded)
         {
             rb.velocity = new Vector2(rb.velocity.x, jumpForce);
         }
@@ -84,6 +89,9 @@ public class PlayerMovement : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (myStats != null && myStats.isDead)
+            return;
+
         if (isDashing) return;
 
         if (isAttacking)
@@ -110,7 +118,7 @@ public class PlayerMovement : MonoBehaviour
     
     public void TryDash()
     {
-        if (canDash && !isDashing)
+        if (canDash && !isDashing && !isAttacking)
         {
             StartCoroutine(DashRoutine());
         }

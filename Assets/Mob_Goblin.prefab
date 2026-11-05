@@ -305,6 +305,7 @@ MonoBehaviour:
   attackRange: 1.2
   moveSpeed: 2.5
   attackDuration: 0.4
+  goldDropAmount: 10
   playerLayer:
     serializedVersion: 2
     m_Bits: 256

@@ -3420,7 +3420,6 @@ GameObject:
   - component: {fileID: 420896267}
   - component: {fileID: 420896269}
   - component: {fileID: 420896268}
-  - component: {fileID: 1876432190}
   m_Layer: 5
   m_Name: Panel_Inventory
   m_TagString: Untagged
@@ -3479,21 +3478,6 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &1876432190
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 420896266}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a73b2d1ff921482c96507fd78c68a1d0, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  totalSlotCount: 20
-  columnCount: 5
-  characterStats: {fileID: 0}
 --- !u!222 &420896269
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4024,6 +4008,7 @@ MonoBehaviour:
   attackRange: 1.2
   moveSpeed: 2.5
   attackDuration: 0.4
+  goldDropAmount: 10
   playerLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -5643,7 +5628,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a4c74e3c6ecc2f40b538a82f69a1ea3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  stopDuration: 0.15
+  stopDuration: 1
 --- !u!1 &1447160763
 GameObject:
   m_ObjectHideFlags: 0

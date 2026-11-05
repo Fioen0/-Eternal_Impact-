@@ -21,6 +21,9 @@ public class EnemyAI : MonoBehaviour
     [Header("공격 딜레이 설정")]
     [SerializeField] private float attackDuration = 0.8f; // ✨ 공격 모션 시간 (초)
 
+    [Header("골드 보상")]
+    [SerializeField, Min(0)] private int goldDropAmount = 10;
+
     [Header("타겟 및 레이어 설정")]
     [SerializeField] private LayerMask playerLayer;   // 플레이어 레이어
     [SerializeField] private LayerMask groundLayer;   // 바닥 레이어
@@ -38,11 +41,13 @@ public class EnemyAI : MonoBehaviour
     private Rigidbody2D rb;
     private CharacterAttack enemyAttack;
     private Animator anim;
+    private CharacterStats characterStats;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         enemyAttack = GetComponent<CharacterAttack>();
+        characterStats = GetComponent<CharacterStats>();
 
         anim = GetComponent<Animator>();
         if (anim == null)
@@ -51,8 +56,42 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
+    private void OnEnable()
+    {
+        if (characterStats != null)
+            characterStats.Died += HandleDeath;
+    }
+
+    private void OnDisable()
+    {
+        if (characterStats != null)
+            characterStats.Died -= HandleDeath;
+    }
+
+    private void HandleDeath()
+    {
+        if (goldDropAmount > 0)
+            GoldCoinPickup.Spawn(transform.position, goldDropAmount);
+
+        if (anim != null)
+        {
+            anim.ResetTrigger("Attack");
+            anim.SetBool("isMoving", false);
+        }
+
+        isAttacking = false;
+        StopAllCoroutines();
+    }
+
     void Update()
     {
+        if (characterStats != null && characterStats.isDead)
+        {
+            if (rb != null)
+                rb.velocity = Vector2.zero;
+            return;
+        }
+
         // ✨ [핵심 1] 공격 중일 때는 속도를 0으로 강제 고정하고 아래 로직을 전부 건너뜁니다.
         if (isAttacking)
         {

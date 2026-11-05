@@ -1,9 +1,11 @@
 using System.Collections;
+using System;
 using UnityEngine;
 using UnityEngine.Events;
 
 public class CharacterStats : MonoBehaviour
 {
+    public event Action Died;
     [Header("체력 설정")]
     [SerializeField] private int maxHealth = 5;
     private int currentHealth;
@@ -92,6 +94,7 @@ public class CharacterStats : MonoBehaviour
     private void Die()
     {
         isDead = true;
+        Died?.Invoke();
 
         if (playerCollider != null) playerCollider.enabled = false;
 

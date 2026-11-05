@@ -22,7 +22,7 @@ public class CharacterAttack : MonoBehaviour
     // AI나 Input 스크립트에서 공격 가능 여부를 확인할 때 사용
     public bool CanAttack()
     {
-        return Time.time >= nextAttackTime;
+        return (myStats == null || !myStats.isDead) && Time.time >= nextAttackTime;
     }
 
     // 1. 공격 트리거/쿨타임 시작 함수 (키 입력 또는 AI 공격 지시 시 호출)
@@ -37,6 +37,9 @@ public class CharacterAttack : MonoBehaviour
     // 2. 실제 타격 판정 및 이펙트 생성 함수 (애니메이션 이벤트에서 호출!)
     public void HitCheck()
     {
+        if (myStats != null && myStats.isDead)
+            return;
+
         if (attackPoint == null)
         {
             Debug.LogWarning($"{gameObject.name}: attackPoint가 지정되지 않았습니다!");
