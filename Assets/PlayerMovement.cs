@@ -46,7 +46,7 @@ public class PlayerMovement : MonoBehaviour
     
     void Update()
     {
-        if (myStats != null && myStats.isDead)
+        if (ShopUI.IsOpen || (myStats != null && myStats.isDead))
             return;
 
         horizontalInput = Input.GetAxisRaw("Horizontal");
@@ -89,7 +89,7 @@ public class PlayerMovement : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (myStats != null && myStats.isDead)
+        if (ShopUI.IsOpen || (myStats != null && myStats.isDead))
             return;
 
         if (isDashing) return;

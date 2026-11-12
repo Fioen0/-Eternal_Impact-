@@ -27,11 +27,14 @@ public class InventoryUI : MonoBehaviour
 
     [Header("테스트 아이템 설정")]
     [SerializeField] private ItemData testItem1;        // 테스트 획득용 포션 (숫자 1)
+    [SerializeField] private ItemData testRelic;         // 테스트 획득용 유물 (숫자 2)
     [SerializeField] private ItemData quickUseConsumable;
     [SerializeField] private KeyCode quickUseKey = KeyCode.Q;
 
     private List<InventorySlotData> inventoryDataList = new List<InventorySlotData>();
     private List<ItemSlot> slotUIList = new List<ItemSlot>();
+
+    public ItemData ShopConsumable => quickUseConsumable != null ? quickUseConsumable : testItem1;
 
     void Awake()
     {
@@ -45,10 +48,20 @@ public class InventoryUI : MonoBehaviour
 
     void Update()
     {
+        if (ShopUI.IsOpen)
+            return;
+
         // 테스트용: 숫자 1키로 포션 1개 획득
         if (Input.GetKeyDown(KeyCode.Alpha1))
         {
             if (testItem1 != null) AddItem(testItem1, 1);
+        }
+
+        // 테스트용: 숫자 2키로 테스트 유물 1개 획득
+        if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            if (testRelic != null) AddItem(testRelic, 1);
+            else Debug.LogWarning("테스트 유물이 연결되지 않았습니다. InventoryUI의 Test Relic 항목을 확인해 주세요.");
         }
 
     }
@@ -92,24 +105,7 @@ public class InventoryUI : MonoBehaviour
     {
         if (itemToAdd == null || amount <= 0) return false;
 
-        int availableCapacity = 0;
-        if (itemToAdd.isStackable)
-        {
-            foreach (InventorySlotData slot in inventoryDataList)
-            {
-                if (slot.item == itemToAdd)
-                    availableCapacity += Mathf.Max(0, itemToAdd.maxStackSize - slot.quantity);
-                else if (slot.item == null)
-                    availableCapacity += Mathf.Max(1, itemToAdd.maxStackSize);
-            }
-        }
-        else
-        {
-            foreach (InventorySlotData slot in inventoryDataList)
-                if (slot.item == null) availableCapacity++;
-        }
-
-        if (availableCapacity < amount)
+        if (!CanAddItem(itemToAdd, amount))
         {
             Debug.LogWarning("인벤토리가 가득 찼습니다!");
             return false;
@@ -143,6 +139,68 @@ public class InventoryUI : MonoBehaviour
 
         RefreshUI();
         Debug.Log($"[아이템 획득] {itemToAdd.itemName} 획득");
+        return true;
+    }
+
+    public bool CanAddItem(ItemData itemToAdd, int amount = 1)
+    {
+        if (itemToAdd == null || amount <= 0) return false;
+
+        int availableCapacity = 0;
+        if (itemToAdd.isStackable)
+        {
+            foreach (InventorySlotData slot in inventoryDataList)
+            {
+                if (slot.item == itemToAdd)
+                    availableCapacity += Mathf.Max(0, itemToAdd.maxStackSize - slot.quantity);
+                else if (slot.item == null)
+                    availableCapacity += Mathf.Max(1, itemToAdd.maxStackSize);
+            }
+        }
+        else
+        {
+            foreach (InventorySlotData slot in inventoryDataList)
+                if (slot.item == null) availableCapacity++;
+        }
+
+        return availableCapacity >= amount;
+    }
+
+    public bool EquipRelicFromSlot(int inventoryIndex)
+    {
+        if (inventoryIndex < 0 || inventoryIndex >= inventoryDataList.Count)
+            return false;
+
+        InventorySlotData slot = inventoryDataList[inventoryIndex];
+        if (slot.item == null || slot.item.itemType != ItemType.Relic)
+            return false;
+
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        EquipmentManager equipment = player != null ? player.GetComponent<EquipmentManager>() : null;
+        if (equipment == null)
+        {
+            Debug.LogError("플레이어에서 EquipmentManager를 찾을 수 없습니다.");
+            return false;
+        }
+
+        int equipmentIndex = equipment.FirstEmptySlotIndex;
+        if (equipmentIndex < 0)
+        {
+            Debug.Log("유물 장착 슬롯이 가득 찼습니다.");
+            return false;
+        }
+
+        if (!equipment.EquipRelic(slot.item, equipmentIndex))
+            return false;
+
+        Debug.Log($"[유물 장착] {slot.item.itemName}");
+        slot.quantity--;
+        if (slot.quantity <= 0)
+        {
+            slot.item = null;
+            slot.quantity = 0;
+        }
+        RefreshUI();
         return true;
     }
 

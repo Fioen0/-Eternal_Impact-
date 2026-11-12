@@ -30,6 +30,7 @@ public class GoldWallet : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
         BuildHud();
+        gameObject.AddComponent<ShopUI>();
         BalanceChanged += UpdateBalance;
         UpdateBalance(Balance);
     }

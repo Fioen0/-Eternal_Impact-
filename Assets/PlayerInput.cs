@@ -32,7 +32,7 @@ public class PlayerInput : MonoBehaviour
 
     void Update()
     {
-        if (characterStats != null && characterStats.isDead)
+        if (ShopUI.IsOpen || (characterStats != null && characterStats.isDead))
             return;
 
         if (Input.GetKeyDown(KeyCode.Z) && !isAttacking && (playerMovement == null || playerMovement.CanAttack))

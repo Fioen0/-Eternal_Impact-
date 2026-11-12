@@ -73,6 +73,12 @@ public class ItemSlot : MonoBehaviour, IPointerClickHandler, IPointerExitHandler
                 tooltip.ShowTooltip(currentItem);
             }
         }
+        else if (eventData.button == PointerEventData.InputButton.Right && currentItem.itemType == ItemType.Relic)
+        {
+            InventoryUI inventory = GetComponentInParent<InventoryUI>();
+            if (inventory != null)
+                inventory.EquipRelicFromSlot(inventory.GetSlotIndex(this));
+        }
     }
 
     // 🌟 마우스 커서가 슬롯을 벗어났을 때 툴팁 숨기기

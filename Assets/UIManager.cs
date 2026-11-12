@@ -15,14 +15,25 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject skillPanel;     // Panel_Skill 연결
     [SerializeField] private TMP_FontAsset koreanUiFont;
 
+    public TMP_FontAsset KoreanUiFont => koreanUiFont;
+
     void Start()
     {
         SetupTabButtons();
+        SetupRelicEquipmentUI();
         // 게임 시작 시 통합 창은 꺼진 상태로 시작
         if (mainUIPanel != null)
         {
             mainUIPanel.SetActive(false);
         }
+    }
+
+    private void SetupRelicEquipmentUI()
+    {
+        if (relicPanel == null) return;
+        RelicEquipmentUI relicUI = relicPanel.GetComponent<RelicEquipmentUI>();
+        if (relicUI == null) relicUI = relicPanel.AddComponent<RelicEquipmentUI>();
+        relicUI.Initialize(koreanUiFont);
     }
 
     private void SetupTabButtons()
@@ -63,6 +74,9 @@ public class UIManager : MonoBehaviour
 
     void Update()
     {
+        if (ShopUI.IsOpen)
+            return;
+
         // Tab 키를 누르면 통합 UI 창 열기/닫기 토글
         if (Input.GetKeyDown(KeyCode.Tab))
         {

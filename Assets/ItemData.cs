@@ -28,6 +28,9 @@ public class ItemData : ScriptableObject
     public ItemType itemType;      // Relic or Consumable
     public ItemRarity rarity;
 
+    [Header("상점 설정")]
+    [Min(0)] public int shopPrice;
+
     [Header("수량 관련")]
     public bool isStackable;       // 중첩 가능 여부
     public int maxStackSize = 99;  // 최대 중첩 수량

@@ -3503,6 +3503,7 @@ MonoBehaviour:
   totalSlotCount: 20
   testItem1: {fileID: 11400000, guid: 6d826c12bc0b93b46a713b845d927bdf, type: 2}
   quickUseConsumable: {fileID: 11400000, guid: 6d826c12bc0b93b46a713b845d927bdf, type: 2}
+  testRelic: {fileID: 11400000, guid: 6462e31e57be2ae4685f701c79ac7a9a, type: 2}
 --- !u!1 &438106854
 GameObject:
   m_ObjectHideFlags: 0
