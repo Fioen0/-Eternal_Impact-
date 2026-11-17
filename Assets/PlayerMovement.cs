@@ -12,6 +12,9 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private Transform groundCheck;
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private Vector2 boxSize = new Vector2(0.5f, 0.1f);
+
+    [Header("일방향 발판 설정")]
+    [SerializeField] private float dropThroughFallSpeed = 2f;
     
     [Header("대쉬 설정")]
     [SerializeField] private float dashSpeed = 15f;    
@@ -21,6 +24,8 @@ public class PlayerMovement : MonoBehaviour
     private bool canDash = true;                        
 
     private Rigidbody2D rb;
+    private Collider2D playerCollider;
+    private bool isDroppingThrough;
     private Animator anim;                              
     private float horizontalInput;
     private bool isGrounded;
@@ -33,6 +38,7 @@ public class PlayerMovement : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        playerCollider = GetComponent<Collider2D>();
         // ✨ 자식 오브젝트(Visual)의 Animator를 가져옵니다.
         anim = GetComponentInChildren<Animator>();               
         myStats = GetComponent<CharacterStats>();
@@ -67,17 +73,55 @@ public class PlayerMovement : MonoBehaviour
             Flip();
         }
 
+        Collider2D groundCollider = null;
         if (groundCheck != null)
         {
-            isGrounded = Physics2D.OverlapBox(groundCheck.position, boxSize, 0f, groundLayer);
+            groundCollider = Physics2D.OverlapBox(groundCheck.position, boxSize, 0f, groundLayer);
+            isGrounded = groundCollider != null;
         }
 
-        if (!isAttacking && Input.GetButtonDown("Jump") && isGrounded)
+        if (!isAttacking && !isDroppingThrough && Input.GetButtonDown("Jump"))
         {
-            rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+            bool isDownHeld = Input.GetAxisRaw("Vertical") < -0.5f;
+            OneWayPlatform oneWayPlatform = groundCollider != null
+                ? groundCollider.GetComponentInParent<OneWayPlatform>()
+                : null;
+
+            if (isGrounded && isDownHeld && oneWayPlatform != null)
+            {
+                StartCoroutine(DropThroughPlatform(oneWayPlatform.PlatformCollider));
+            }
+            else if (isGrounded)
+            {
+                rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+            }
         }
     }
     
+    private IEnumerator DropThroughPlatform(Collider2D platformCollider)
+    {
+        if (playerCollider == null || platformCollider == null || rb == null)
+            yield break;
+
+        isDroppingThrough = true;
+        Physics2D.IgnoreCollision(playerCollider, platformCollider, true);
+        rb.velocity = new Vector2(rb.velocity.x, -Mathf.Abs(dropThroughFallSpeed));
+
+        // 플레이어의 콜라이더 전체가 발판 아래로 빠져나올 때까지 충돌을 무시합니다.
+        while (playerCollider != null && platformCollider != null &&
+               playerCollider.bounds.max.y >= platformCollider.bounds.min.y)
+        {
+            yield return null;
+        }
+
+        yield return new WaitForFixedUpdate();
+
+        if (playerCollider != null && platformCollider != null)
+            Physics2D.IgnoreCollision(playerCollider, platformCollider, false);
+
+        isDroppingThrough = false;
+    }
+
     void Flip()
     {
         isFacingRight = !isFacingRight;

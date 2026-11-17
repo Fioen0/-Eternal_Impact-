@@ -1,4 +1,19 @@
+using System.Collections.Generic;
 using UnityEngine;
+
+[System.Serializable]
+public class EnemySpawnSetting
+{
+    [Tooltip("이 설정으로 생성할 적 프리팹")]
+    public GameObject enemyPrefab;
+
+    [Min(0)]
+    [Tooltip("생성할 적 수. 지정한 스폰 지점 수보다 많으면 지점 수에 맞춰 줄어듭니다.")]
+    public int count = 1;
+
+    [Tooltip("적이 생성될 위치들. 스폰 지점 오브젝트는 Monster Container 밖에 둡니다.")]
+    public EnemySpawnPoint[] spawnPoints = new EnemySpawnPoint[0];
+}
 
 public class RoomManager : MonoBehaviour
 {
@@ -6,23 +21,51 @@ public class RoomManager : MonoBehaviour
 
     [Header("방 설정")]
     [SerializeField] private RoomType roomType = RoomType.NormalCombat;
-    [SerializeField] private RoomMoveTrigger exitDoor; // 해당 방의 출구 문 트리거
+    [SerializeField] private RoomMoveTrigger exitDoor;
+    [SerializeField] private Transform playerSpawnPoint;
+    [SerializeField] private bool isInitialRoom;
 
     [Header("전투방 전용 (몬스터 부모)")]
-    [SerializeField] private Transform monsterContainer; // 방 안에 배치된 몬스터들을 모아둔 부모 오브젝트
+    [SerializeField] private Transform monsterContainer;
+
+    [Header("전투방 적 생성 설정")]
+    [SerializeField] private List<EnemySpawnSetting> enemySpawnSettings = new List<EnemySpawnSetting>();
+    [SerializeField] private bool replaceExistingMonstersWhenSpawning = true;
 
     private bool isCleared = false;
+    private bool hasSpawnedConfiguredEnemies = false;
 
     void Start()
     {
-        // 상점, 보물방 등 특수 방은 조건 없이 즉시 문 개방
         if (roomType == RoomType.Shop || roomType == RoomType.Treasure)
         {
             ClearRoom();
         }
-        else
+        else if (exitDoor != null)
         {
-            if (exitDoor != null) exitDoor.SetDoorOpen(false);
+            exitDoor.SetDoorOpen(false);
+        }
+
+        // 최초 방만 게임 시작 시 플레이어를 배치하고 적을 생성합니다.
+        if (isInitialRoom)
+            EnterRoom(GameObject.FindGameObjectWithTag("Player"));
+    }
+
+    public void EnterRoom(GameObject player)
+    {
+        if (player == null)
+        {
+            Debug.LogWarning($"[{name}] 입장할 플레이어를 찾지 못했습니다.", this);
+            return;
+        }
+
+        if (playerSpawnPoint != null)
+            player.transform.position = playerSpawnPoint.position;
+
+        if ((roomType == RoomType.NormalCombat || roomType == RoomType.Boss) && !hasSpawnedConfiguredEnemies)
+        {
+            hasSpawnedConfiguredEnemies = true;
+            SpawnConfiguredEnemies();
         }
     }
 
@@ -30,21 +73,80 @@ public class RoomManager : MonoBehaviour
     {
         if (isCleared) return;
 
-        // 일반 전투방 또는 보스방인 경우 몬스터 전멸 체크
         if (roomType == RoomType.NormalCombat || roomType == RoomType.Boss)
-        {
             CheckMonsters();
-        }
     }
 
     private void CheckMonsters()
     {
-        if (monsterContainer != null)
+        if (monsterContainer != null && monsterContainer.childCount == 0)
+            ClearRoom();
+    }
+
+    private void SpawnConfiguredEnemies()
+    {
+        bool hasConfiguredEnemies = false;
+        foreach (EnemySpawnSetting setting in enemySpawnSettings)
         {
-            // 몬스터 컨테이너 안의 남은 자식(몬스터) 수가 0개이면 클리어
-            if (monsterContainer.childCount == 0)
+            if (setting == null || setting.enemyPrefab == null || setting.count <= 0 || setting.spawnPoints == null)
+                continue;
+
+            foreach (EnemySpawnPoint point in setting.spawnPoints)
             {
-                ClearRoom();
+                if (point != null)
+                {
+                    hasConfiguredEnemies = true;
+                    break;
+                }
+            }
+
+            if (hasConfiguredEnemies) break;
+        }
+
+        if (!hasConfiguredEnemies) return;
+
+        if (monsterContainer == null)
+        {
+            Debug.LogError($"[{name}] 적 생성 설정이 있지만 Monster Container가 지정되지 않았습니다.", this);
+            return;
+        }
+
+        if (replaceExistingMonstersWhenSpawning)
+        {
+            for (int i = monsterContainer.childCount - 1; i >= 0; i--)
+                Destroy(monsterContainer.GetChild(i).gameObject);
+        }
+
+        foreach (EnemySpawnSetting setting in enemySpawnSettings)
+        {
+            if (setting == null || setting.enemyPrefab == null || setting.count <= 0) continue;
+
+            List<EnemySpawnPoint> validPoints = new List<EnemySpawnPoint>();
+            if (setting.spawnPoints != null)
+            {
+                foreach (EnemySpawnPoint point in setting.spawnPoints)
+                    if (point != null) validPoints.Add(point);
+            }
+
+            if (validPoints.Count == 0)
+            {
+                Debug.LogWarning($"[{name}] {setting.enemyPrefab.name} 스폰 지점이 없어 생성하지 않았습니다.", this);
+                continue;
+            }
+
+            int spawnCount = Mathf.Min(setting.count, validPoints.Count);
+            if (spawnCount < setting.count)
+                Debug.LogWarning($"[{name}] {setting.enemyPrefab.name} 수량({setting.count})이 스폰 지점 수({validPoints.Count})보다 많아 {spawnCount}마리만 생성합니다.", this);
+
+            for (int i = 0; i < spawnCount; i++)
+            {
+                int selectedIndex = Random.Range(i, validPoints.Count);
+                EnemySpawnPoint temp = validPoints[i];
+                validPoints[i] = validPoints[selectedIndex];
+                validPoints[selectedIndex] = temp;
+
+                Transform spawn = validPoints[i].transform;
+                Instantiate(setting.enemyPrefab, spawn.position, setting.enemyPrefab.transform.rotation, monsterContainer);
             }
         }
     }
@@ -52,11 +154,9 @@ public class RoomManager : MonoBehaviour
     private void ClearRoom()
     {
         isCleared = true;
-        Debug.Log($"방 클리어 완료! 출구 문이 열렸습니다.");
+        Debug.Log("방 클리어 완료! 출구 문이 열렸습니다.");
 
         if (exitDoor != null)
-        {
             exitDoor.SetDoorOpen(true);
-        }
     }
 }
