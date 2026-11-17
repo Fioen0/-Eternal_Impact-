@@ -62,6 +62,7 @@ public class PotionQuickSlotUI : MonoBehaviour
 
     private void Update()
     {
+        if (ShopUI.IsOpen) return;
         if (Input.GetKeyDown(useKey)) inventory.UseQuickItem();
     }
 

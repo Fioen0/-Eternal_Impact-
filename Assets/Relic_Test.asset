@@ -13,16 +13,14 @@ MonoBehaviour:
   m_Name: Relic_Test
   m_EditorClassIdentifier: 
   itemId: 
-  itemName: 
+  itemName: "\uD14C\uC2A4\uD2B8 \uC720\uBB3C"
   icon: {fileID: 0}
   itemType: 1
   rarity: 0
-  shopPrice: 0
+  shopPrice: 50
   isStackable: 0
   maxStackSize: 99
   bonusAttackDamage: 5
   bonusMaxHealth: 2
   healAmount: 0
-  description: 'atk +5
-
-    hp +2'
+  description: "\uCD5C\uB300 \uCCB4\uB825 +2, \uACF5\uACA9\uB825 +5"
