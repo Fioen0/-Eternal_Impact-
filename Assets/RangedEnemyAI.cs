@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class RangedEnemyAI : MonoBehaviour
@@ -12,7 +13,9 @@ public class RangedEnemyAI : MonoBehaviour
     [SerializeField] private EnemyProjectile projectilePrefab;
     [SerializeField] private Transform firePoint;
     [SerializeField, Min(0f)] private float projectileSpeed = 5f;
-    [SerializeField, Min(0.1f)] private float attackCooldown = 2f;
+    [SerializeField, Min(0.1f)] private float attackCooldown = 4.5f;
+    [SerializeField, Min(0f)] private float attackWindupDuration = 0.65f;
+    [SerializeField, Min(0.1f)] private float attackAnimationDuration = 0.8f;
     [SerializeField, Min(0)] private int goldDropAmount = 10;
 
     private Rigidbody2D body;
@@ -22,6 +25,8 @@ public class RangedEnemyAI : MonoBehaviour
     private Transform queuedTarget;
     private Vector2 queuedDirection;
     private float nextAttackTime;
+    private bool isAttacking;
+    private GameObject activeTelegraph;
 
     private void Awake()
     {
@@ -50,6 +55,13 @@ public class RangedEnemyAI : MonoBehaviour
             return;
         }
 
+        if (isAttacking)
+        {
+            body.velocity = Vector2.zero;
+            if (animator != null) animator.SetBool("isMoving", false);
+            return;
+        }
+
         FindPlayer();
         if (player == null)
         {
@@ -70,7 +82,7 @@ public class RangedEnemyAI : MonoBehaviour
         body.velocity = Vector2.zero;
         if (animator != null) animator.SetBool("isMoving", false);
         if (Time.time >= nextAttackTime)
-            FireAtPlayer(toPlayer);
+            BeginAttackWarning(toPlayer);
     }
 
     private void FindPlayer()
@@ -87,16 +99,41 @@ public class RangedEnemyAI : MonoBehaviour
         transform.localScale = scale;
     }
 
-    private void FireAtPlayer(Vector2 direction)
+    private void BeginAttackWarning(Vector2 direction)
     {
         nextAttackTime = Time.time + attackCooldown;
-        queuedTarget = player;
+        queuedTarget = null;
         queuedDirection = direction;
+        isAttacking = true;
+
+        Vector3 warningPosition = firePoint != null
+            ? firePoint.position
+            : transform.position + Vector3.up * 0.6f;
+        SpriteRenderer sprite = animator != null ? animator.GetComponent<SpriteRenderer>() : null;
+        activeTelegraph = EnemyAttackTelegraph.Create(warningPosition, transform,
+            sprite != null ? sprite.sortingLayerID : 0,
+            sprite != null ? sprite.sortingOrder + 1 : 1);
+        StartCoroutine(PerformAttackAfterWarning());
+    }
+
+    private IEnumerator PerformAttackAfterWarning()
+    {
+        yield return EnemyAttackTelegraph.Pulse(activeTelegraph, attackWindupDuration);
+        activeTelegraph = null;
+
+        if (characterStats != null && characterStats.isDead)
+        {
+            isAttacking = false;
+            yield break;
+        }
 
         if (animator != null)
             animator.SetTrigger("Attack");
         else
             FireProjectileFromAnimation();
+
+        yield return new WaitForSeconds(attackAnimationDuration);
+        isAttacking = false;
     }
 
     public void FireProjectileFromAnimation()
@@ -121,6 +158,10 @@ public class RangedEnemyAI : MonoBehaviour
 
     private void HandleDeath()
     {
+        StopAllCoroutines();
+        isAttacking = false;
+        if (activeTelegraph != null) Destroy(activeTelegraph);
+        activeTelegraph = null;
         if (body != null) body.velocity = Vector2.zero;
         if (animator != null) animator.SetBool("isMoving", false);
         if (goldDropAmount > 0)

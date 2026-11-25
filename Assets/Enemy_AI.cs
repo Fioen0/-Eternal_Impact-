@@ -19,7 +19,8 @@ public class EnemyAI : MonoBehaviour
     [SerializeField] private float moveSpeed = 2.5f;    // 이동 속도
 
     [Header("공격 딜레이 설정")]
-    [SerializeField] private float attackDuration = 0.8f; // ✨ 공격 모션 시간 (초)
+    [SerializeField] private float attackDuration = 0.8f; // 공격 애니메이션 고정 시간
+    [SerializeField, Min(0f)] private float attackWindupDuration = 0.65f; // 공격 전 예고 시간
 
     [Header("골드 보상")]
     [SerializeField, Min(0)] private int goldDropAmount = 10;
@@ -42,6 +43,7 @@ public class EnemyAI : MonoBehaviour
     private CharacterAttack enemyAttack;
     private Animator anim;
     private CharacterStats characterStats;
+    private GameObject activeTelegraph;
 
     void Awake()
     {
@@ -70,6 +72,9 @@ public class EnemyAI : MonoBehaviour
 
     private void HandleDeath()
     {
+        if (activeTelegraph != null)
+            Destroy(activeTelegraph);
+
         if (goldDropAmount > 0)
             GoldCoinPickup.Spawn(transform.position, goldDropAmount);
 
@@ -179,24 +184,31 @@ public class EnemyAI : MonoBehaviour
     private IEnumerator PerformAttackCoroutine()
     {
         isAttacking = true;
-        
-        // 이동 및 애니메이션 강제 정지
         rb.velocity = Vector2.zero;
+        rb.constraints = RigidbodyConstraints2D.FreezePositionX | RigidbodyConstraints2D.FreezeRotation;
         if (anim != null)
-        {
             anim.SetBool("isMoving", false);
-            anim.SetTrigger("Attack");
+
+        float direction = playerTransform != null && playerTransform.position.x < transform.position.x ? -1f : 1f;
+        Vector3 warningPosition = transform.position + new Vector3(direction * 0.9f, 1.05f, -0.1f);
+        SpriteRenderer sprite = anim != null ? anim.GetComponent<SpriteRenderer>() : null;
+        activeTelegraph = EnemyAttackTelegraph.Create(warningPosition, transform,
+            sprite != null ? sprite.sortingLayerID : 0,
+            sprite != null ? sprite.sortingOrder + 1 : 1);
+        yield return EnemyAttackTelegraph.Pulse(activeTelegraph, attackWindupDuration);
+        activeTelegraph = null;
+
+        if (characterStats != null && characterStats.isDead)
+            yield break;
+
+        if (enemyAttack != null && enemyAttack.CanAttack())
+        {
+            enemyAttack.DoAttack();
+            if (anim != null)
+                anim.SetTrigger("Attack");
+            yield return new WaitForSeconds(attackDuration);
         }
 
-        // X축 위치 고정 (움직임 물리 락)
-        rb.constraints = RigidbodyConstraints2D.FreezePositionX | RigidbodyConstraints2D.FreezeRotation;
-
-        enemyAttack.DoAttack();
-
-        // 공격 애니메이션이 진행되는 동안 대기
-        yield return new WaitForSeconds(attackDuration);
-
-        // 위치 고정 해제 (원래대로 복구)
         rb.constraints = RigidbodyConstraints2D.FreezeRotation;
         isAttacking = false;
     }

@@ -7,6 +7,9 @@ public class EnemySpawnSetting
     [Tooltip("이 설정으로 생성할 적 프리팹")]
     public GameObject enemyPrefab;
 
+    [Tooltip("보스 HUD에 표시할 이름. 비워 두면 프리팹 이름을 사용합니다.")]
+    public string displayName;
+
     [Min(0)]
     [Tooltip("생성할 적 수. 지정한 스폰 지점 수보다 많으면 지점 수에 맞춰 줄어듭니다.")]
     public int count = 1;
@@ -31,6 +34,9 @@ public class RoomManager : MonoBehaviour
     [Header("전투방 적 생성 설정")]
     [SerializeField] private List<EnemySpawnSetting> enemySpawnSettings = new List<EnemySpawnSetting>();
     [SerializeField] private bool replaceExistingMonstersWhenSpawning = true;
+
+    [Header("보스 UI")]
+    [SerializeField] private BossHealthBarUI bossHealthBar;
 
     private bool isCleared = false;
     private bool hasSpawnedConfiguredEnemies = false;
@@ -72,6 +78,10 @@ public class RoomManager : MonoBehaviour
     void Update()
     {
         if (isCleared) return;
+
+        // Boss rooms are inactive until EnterRoom spawns their configured boss.
+        if (roomType == RoomType.Boss && !hasSpawnedConfiguredEnemies)
+            return;
 
         if (roomType == RoomType.NormalCombat || roomType == RoomType.Boss)
             CheckMonsters();
@@ -146,7 +156,23 @@ public class RoomManager : MonoBehaviour
                 validPoints[selectedIndex] = temp;
 
                 Transform spawn = validPoints[i].transform;
-                Instantiate(setting.enemyPrefab, spawn.position, setting.enemyPrefab.transform.rotation, monsterContainer);
+                GameObject spawnedEnemy = Instantiate(setting.enemyPrefab, spawn.position,
+                    setting.enemyPrefab.transform.rotation, monsterContainer);
+
+                if (roomType == RoomType.Boss)
+                {
+                    if (bossHealthBar == null)
+                        bossHealthBar = FindObjectOfType<BossHealthBarUI>();
+
+                    CharacterStats bossStats = spawnedEnemy.GetComponent<CharacterStats>();
+                    if (bossHealthBar != null && bossStats != null)
+                    {
+                        string displayName = string.IsNullOrWhiteSpace(setting.displayName)
+                            ? setting.enemyPrefab.name
+                            : setting.displayName;
+                        bossHealthBar.ShowBoss(bossStats, displayName);
+                    }
+                }
             }
         }
     }
@@ -155,6 +181,9 @@ public class RoomManager : MonoBehaviour
     {
         isCleared = true;
         Debug.Log("방 클리어 완료! 출구 문이 열렸습니다.");
+
+        if (roomType == RoomType.Boss && bossHealthBar != null)
+            bossHealthBar.HideBoss();
 
         if (exitDoor != null)
             exitDoor.SetDoorOpen(true);

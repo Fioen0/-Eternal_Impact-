@@ -802,5 +802,7 @@ MonoBehaviour:
   projectilePrefab: {fileID: 114000000, guid: b75ec95818dd47eead8ef9956517e965, type: 3}
   firePoint: {fileID: 775119129}
   projectileSpeed: 5
-  attackCooldown: 2
+  attackCooldown: 4.5
+  attackWindupDuration: 0.65
+  attackAnimationDuration: 0.8
   goldDropAmount: 10
